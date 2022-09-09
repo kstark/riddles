@@ -47,7 +47,29 @@ def find_max_page(soup):
 def extract_riddle(soup):
     question = soup.find(class_='hidden-print').next_sibling.strip()
     answer = soup.find(class_='collapse').text.strip()
-    return question, answer
+
+    button = soup.find('button', class_='riddle-vote-y')
+    if button:
+        likes = int(button.attrs['data-value']) - 1
+        dislikes = int(button.attrs['data-value2'])
+    else:
+        likes, dislikes = 0, 0
+    return {
+        "question": question,
+        "answer": answer,
+        "likes": likes,
+        "dislikes": dislikes,
+    }
+
+
+def format_riddle(riddle: dict):
+    return (
+        f"{riddle['question']}\n\n"
+        + f"||"
+        + f"{riddle['answer']}\n"
+        + f"👍{riddle['likes']:,} 👎{riddle['dislikes']:,}"
+        + f"||"
+    )
 
 bot = interactions.Client(token=os.getenv("DISCORD_TOKEN"))
 
@@ -76,7 +98,8 @@ async def riddle(ctx: interactions.CommandContext, search: str):
     if not riddles:
         await ctx.send(f"**Oops!**\n\nCouldn't find any riddles")
     else:
-        question, answer = random.choice(riddles)
-        await ctx.send(f"{question}\n\n||{answer}||")
+        result = random.choice(riddles)
+
+        await ctx.send(format_riddle(result))
 
 bot.start()
